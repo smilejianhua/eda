@@ -18,34 +18,27 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * ClientAdapter that sends Events as XML.
+ * ClientAdapter 以XML格式发布事件
  *
- * @author Just van den Broecke - Just Objects &copy;
- * @version $Id: XMLAdapter.java,v 1.7 2007/11/09 13:15:35 justb Exp $
+ * @author Jacky.Li
  */
 class XMLAdapter implements ClientAdapter {
-	/**
-	 * Header for strict XML
-	 */
+	
 	// public static final String XML_HEAD = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n";
 	private String contentType = "text/plain;charset=UTF-8";
 	private ServletOutputStream out = null;
-	private HttpServletResponse servletRsp;
+	private HttpServletResponse servletResponse;
 	private boolean strictXML;
 
 	/**
-	 * Initialize.
+	 * 初始化
 	 */
 	public XMLAdapter(HttpServletResponse aServletResponse) {
 		this(aServletResponse, false);
 	}
 
-	/**
-	 * Initialize.
-	 */
 	public XMLAdapter(HttpServletResponse aServletResponse, boolean useStrictXML) {
-		servletRsp = aServletResponse;
-		// Strict XML implies returning a complete XML document
+		servletResponse = aServletResponse;
 		strictXML = useStrictXML;
 		if (strictXML) {
 			contentType = "text/xml;charset=UTF-8";
@@ -53,35 +46,21 @@ class XMLAdapter implements ClientAdapter {
 	}
 
 	public void start() throws IOException {
-		// If content type is plain text
-		// then this is not a complete XML document, but rather
-		// a stream of XML documents where each document is
-		// an Event. In strict XML mode a complete document is returned.
-		servletRsp.setContentType(contentType);
-		out = servletRsp.getOutputStream();
-		// Don't need this further
-		servletRsp = null;
-		// Start XML document if strict XML mode
+		servletResponse.setContentType(contentType);
+		out = servletResponse.getOutputStream();
+		servletResponse = null;
 		if (strictXML) {
 			out.print("<pushlet>");
 		}
 	}
 
-	/**
-	 * Force client to refresh the request.
-	 */
 	public void push(Event anEvent) throws IOException {
 		debug("event=" + anEvent);
-		// Send the event as XML to the client and flush.
 		out.print(anEvent.toXML(strictXML));
 		out.flush();
 	}
 
-	/**
-	 * No action.
-	 */
 	public void stop() throws IOException {
-		// Close XML document if strict XML mode
 		if (strictXML) {
 			out.print("</pushlet>");
 			out.flush();

@@ -81,9 +81,6 @@ public class Event implements Protocol, Serializable {
 		return (String) attributes.get(name);
 	}
 
-	/**
-	 * Return field; if null return default.
-	 */
 	public String getField(String name, String aDefault) {
 		String result = getField(name);
 		return result == null ? aDefault : result;

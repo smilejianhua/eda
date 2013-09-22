@@ -45,14 +45,14 @@ public class EventQueue {
 	}
 
 	/**
-	 * Put item in queue; waits() indefinitely if queue is full.
+	 * 将对象放入队列
 	 */
 	public synchronized boolean enQueue(Event item) throws InterruptedException {
 		return enQueue(item, -1);
 	}
 
 	/**
-	 * Put item in queue; if full wait maxtime.
+	 * 如果超过最长等待时间，将对象放入队列
 	 */
 	public synchronized boolean enQueue(Event item, long maxWaitTime) throws InterruptedException {
 		while (isFull()) {
@@ -66,76 +66,53 @@ public class EventQueue {
 				wait();
 			}
 		}
-		// Put item in queue
 		queue[rear] = item;
 		rear = next(rear);
-		// Wake up waiters; NOTE: first waiter will eat item
 		notifyAll();
 		return true;
 	}
 
-	/**
-	 * Get head; if empty wait until something in queue.
-	 */
 	public synchronized Event deQueue() throws InterruptedException {
 		return deQueue(-1);
 	}
 
-	/**
-	 * Get head; if empty wait for specified time at max.
-	 */
 	public synchronized Event deQueue(long maxWaitTime) throws InterruptedException {
 		while (isEmpty()) {
 			if (maxWaitTime >= 0) {
 				wait(maxWaitTime);
-				// Timed out or woken; if still empty we
-				// had bad luck and return failure.
 				if (isEmpty()) {
 					return null;
 				}
 			}
 			else {
-				// Wait indefinitely for something in queue.
 				wait();
 			}
 		}
-		// Dequeue item
 		Event result = fetchNext();
-		// Notify possible wait()-ing enQueue()-ers
 		notifyAll();
-		// Return dequeued item
 		return result;
 	}
 
 	/**
-	 * Get all queued Events.
+	 * 获得所有队列中的事件
 	 */
 	public synchronized Event[] deQueueAll(long maxWaitTime) throws InterruptedException {
 		while (isEmpty()) {
 			if (maxWaitTime >= 0) {
 				wait(maxWaitTime);
-				// Timed out or woken; if still empty we
-				// had bad luck and return failure.
 				if (isEmpty()) {
 					return null;
 				}
 			}
 			else {
-				// Wait indefinitely for something in queue.
 				wait();
 			}
 		}
-
-		// Dequeue all items item
 		Event[] events = new Event[getSize()];
 		for (int i = 0; i < events.length; i++) {
 			events[i] = fetchNext();
 		}
-
-		// Notify possible wait()-ing enQueue()-ers
 		notifyAll();
-
-		// Return dequeued item
 		return events;
 	}
 
@@ -144,28 +121,28 @@ public class EventQueue {
 	}
 
 	/**
-	 * Is the queue empty ?
+	 * 判断队列是否为空
 	 */
 	public synchronized boolean isEmpty() {
 		return front == rear;
 	}
 
 	/**
-	 * Is the queue full ?
+	 * 判断队列是否已经满
 	 */
 	public synchronized boolean isFull() {
 		return (next(rear) == front);
 	}
 
 	/**
-	 * Circular counter.
+	 * 循环计数
 	 */
 	private int next(int index) {
 		return (index + 1 < capacity ? index + 1 : 0);
 	}
 
 	/**
-	 * Circular counter.
+	 * 循环计数
 	 */
 	private Event fetchNext() {
 		Event temp = queue[front];

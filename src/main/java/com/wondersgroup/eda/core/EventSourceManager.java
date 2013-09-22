@@ -51,9 +51,7 @@ public class EventSourceManager {
 				return;
 			}
 		}
-		// Create event source collection
 		eventSources = new Vector(properties.size());
-		// Add the configured sources
 		for (Enumeration e = properties.keys(); e.hasMoreElements();) {
 			String nextKey = (String) e.nextElement();
 			String nextClass = properties.getProperty(nextKey);

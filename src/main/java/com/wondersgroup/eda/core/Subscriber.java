@@ -23,15 +23,14 @@ import java.net.URLEncoder;
 
 /**
  * Handles data channel between dispatcher and client.
- * 
- * @author Just van den Broecke - Just Objects &copy;
- * @version $Id: Subscriber.java,v 1.26 2007/11/23 14:33:07 justb Exp $
+ *
+ * @author Jacky.Li
  */
 public class Subscriber implements Protocol, ConfigDefs {
 	private Session session;
 
 	/**
-	 * Blocking queue.
+	 * 队列阻塞
 	 */
 	private EventQueue eventQueue = new EventQueue(Config.getIntProperty(QUEUE_SIZE));
 
@@ -65,7 +64,7 @@ public class Subscriber implements Protocol, ConfigDefs {
 	}
 
 	/**
-	 * Create instance through factory method.
+	 * 通过工厂模式创建实例
 	 * 
 	 * @param aSession
 	 *            the parent Session
@@ -99,53 +98,41 @@ public class Subscriber implements Protocol, ConfigDefs {
 		session.stop();
 	}
 
-	/**
-	 * Are we still active to handle events.
-	 */
 	public boolean isActive() {
 		return active;
 	}
 
-	/**
-	 * Return client session.
-	 */
 	public Session getSession() {
 		return session;
 	}
 
-	/**
-	 * Get (session) id.
-	 */
 	public String getId() {
 		return session.getId();
 	}
 
-	/**
-	 * Return subscriptions.
-	 */
 	public Subscription[] getSubscriptions() {
-		// todo: Optimize
+		//TODO 可优化点
 		return (Subscription[]) subscriptions.values().toArray(new Subscription[0]);
 	}
 
 	/**
-	 * Add a subscription.
+	 * 增加一个订购
 	 */
-	public Subscription addSubscription(String aSubject, String aLabel) throws PushletException {
-		Subscription subscription = Subscription.create(aSubject, aLabel);
+	public Subscription addSubscription(String subject, String label) throws PushletException {
+		Subscription subscription = Subscription.create(subject, label);
 		subscriptions.put(subscription.getId(), subscription);
-		info("Subscription added subject=" + aSubject + " sid=" + subscription.getId() + " label="
-				+ aLabel);
+		info("Subscription added subject=" + subject + " sid=" + subscription.getId() + " label="
+				+ label);
 		return subscription;
 	}
 
 	/**
-	 * Remove a subscription.
+	 * 删除订购
 	 */
-	public Subscription removeSubscription(String aSubscriptionId) {
-		Subscription subscription = (Subscription) subscriptions.remove(aSubscriptionId);
+	public Subscription removeSubscription(String subscriptionId) {
+		Subscription subscription = (Subscription) subscriptions.remove(subscriptionId);
 		if (subscription == null) {
-			warn("No subscription found sid=" + aSubscriptionId);
+			warn("No subscription found sid=" + subscriptionId);
 			return null;
 		}
 		info("Subscription removed subject=" + subscription.getSubject() + " sid="
@@ -154,7 +141,7 @@ public class Subscriber implements Protocol, ConfigDefs {
 	}
 
 	/**
-	 * Remove all subscriptions.
+	 * 移除所有备注
 	 */
 	public void removeSubscriptions() {
 		subscriptions.clear();
@@ -181,7 +168,7 @@ public class Subscriber implements Protocol, ConfigDefs {
 	}
 
 	/**
-	 * Get events from queue and push to client.
+	 * 从队列中获取事件并推送到客户端，此为关键方法
 	 */
 	public void fetchEvents(Command aCommand) throws PushletException {
 
@@ -218,7 +205,6 @@ public class Subscriber implements Protocol, ConfigDefs {
 			if ((mode.equals(MODE_POLL) || mode.equals(MODE_PULL))
 					&& responseEvent.getEventType().endsWith(Protocol.E_LISTEN_ACK)) {
 				sendRefresh(clientAdapter, refreshURL);
-
 				// We should come back later with refresh event...
 				return;
 			}
@@ -227,16 +213,11 @@ public class Subscriber implements Protocol, ConfigDefs {
 			bailout();
 			return;
 		}
-
 		Event[] events = null;
 
-		// Main loop: as long as connected, get events and push to client
 		long eventSeqNr = 1;
 		while (isActive()) {
-			// Indicate we are still alive
 			lastAlive = Sys.now();
-
-			// Update session time to live
 			session.kick();
 
 			// Get next events; blocks until timeout or entire contents
@@ -248,37 +229,25 @@ public class Subscriber implements Protocol, ConfigDefs {
 				if (mode.equals(MODE_STREAM) && eventSeqNr == 1) {
 					eventQueue.enQueue(new Event(E_HEARTBEAT));
 				}
-
 				events = eventQueue.deQueueAll(queueReadTimeoutMillis);
 			}
 			catch (InterruptedException ie) {
 				warn("interrupted");
 				bailout();
 			}
-
 			// Send heartbeat when no events received
 			if (events == null) {
 				events = new Event[1];
 				events[0] = new Event(E_HEARTBEAT);
 			}
-
-			// ASSERT: one or more events available
-
-			// Send events to client using adapter
-			// debug("received event count=" + events.length);
 			for (int i = 0; i < events.length; i++) {
-				// Check for abort event
 				if (events[i].getEventType().equals(E_ABORT)) {
 					warn("Aborting Subscriber");
 					bailout();
 				}
-
-				// Push next Event to client
+				// 推送接下来一个事件到客户端
 				try {
-					// Set sequence number
 					events[i].setField(P_SEQ, eventSeqNr++);
-
-					// Push to client through client adapter
 					clientAdapter.push(events[i]);
 				}
 				catch (Throwable t) {
@@ -286,12 +255,8 @@ public class Subscriber implements Protocol, ConfigDefs {
 					return;
 				}
 			}
-
-			// Force client refresh request in pull or poll modes
 			if (mode.equals(MODE_PULL) || mode.equals(MODE_POLL)) {
 				sendRefresh(clientAdapter, refreshURL);
-
-				// Always leave loop in pull/poll mode
 				break;
 			}
 		}
@@ -311,82 +276,53 @@ public class Subscriber implements Protocol, ConfigDefs {
 	}
 
 	/**
-	 * Event from Dispatcher: enqueue it.
+	 * Dispather发布的事件
 	 */
 	public void onEvent(Event theEvent) {
 		if (!isActive()) {
 			return;
 		}
-
-		// p("send: queue event: "+theEvent.getSubject());
-
-		// Check if we had any active continuation for at
-		// least 'timeOut' millisecs. If the client has left this
-		// instance there would be no way of knowing otherwise.
 		long now = Sys.now();
 		if (now - lastAlive > refreshTimeoutMillis) {
 			warn("not alive for at least: " + refreshTimeoutMillis + "ms, leaving...");
 			bailout();
 			return;
 		}
-
-		// Put event in queue; leave if queue full
 		try {
 			if (!eventQueue.enQueue(theEvent, queueWriteTimeoutMillis)) {
 				warn("queue full, bailing out...");
 				bailout();
 			}
-
-			// ASSERTION : Event in queue.
-			// see fetchEvents() where Events are dequeued and pushed to the
-			// client.
 		}
 		catch (InterruptedException ie) {
 			bailout();
 		}
-
 	}
 
 	/**
-	 * Send refresh command to pull/poll clients.
+	 * 针对推拉客户端发出刷新命令
 	 */
-	protected void sendRefresh(ClientAdapter aClientAdapter, String aRefreshURL) {
+	protected void sendRefresh(ClientAdapter clientAdapter, String refreshURL) {
 		Event refreshEvent = new Event(E_REFRESH);
-
-		// Set wait time and url for refresh
 		refreshEvent.setField(P_WAIT, "" + getRefreshTimeMillis());
-		refreshEvent.setField(P_URL, aRefreshURL);
-
+		refreshEvent.setField(P_URL, refreshURL);
 		try {
-			// Push to client through client adapter
-			aClientAdapter.push(refreshEvent);
-
-			// Stop this round until refresh event
-			aClientAdapter.stop();
+			clientAdapter.push(refreshEvent);
+			clientAdapter.stop();
 		}
 		catch (Throwable t) {
-			// Leave on any exception
 			bailout();
 		}
 	}
 
-	/**
-	 * Info.
-	 */
 	protected void info(String s) {
 		session.info("[Subscriber] " + s);
 	}
 
-	/**
-	 * Exceptional print util.
-	 */
 	protected void warn(String s) {
 		session.warn("[Subscriber] " + s);
 	}
 
-	/**
-	 * Exceptional print util.
-	 */
 	protected void debug(String s) {
 		session.debug("[Subscriber] " + s);
 	}
@@ -395,82 +331,3 @@ public class Subscriber implements Protocol, ConfigDefs {
 		return session.toString();
 	}
 }
-
-/*
- * $Log: Subscriber.java,v $ Revision 1.26 2007/11/23 14:33:07 justb core
- * classes now configurable through factory
- * 
- * Revision 1.25 2007/11/10 15:53:15 justb put heartbeat in queue when start
- * fetching events in stream-mode
- * 
- * Revision 1.24 2006/10/19 12:33:40 justb add atomic join-listen support (one
- * request)
- * 
- * Revision 1.22 2006/05/06 00:06:28 justb first rough version AJAX client
- * 
- * Revision 1.21 2005/02/28 12:45:59 justb introduced Command class
- * 
- * Revision 1.20 2005/02/21 16:59:09 justb SessionManager and session lease
- * introduced
- * 
- * Revision 1.19 2005/02/21 12:32:28 justb fixed publish event in Controller
- * 
- * Revision 1.18 2005/02/21 11:50:46 justb ohase1 of refactoring Subscriber into
- * Session/Controller/Subscriber
- * 
- * Revision 1.17 2005/02/20 13:05:32 justb removed the Postlet (integrated in
- * Pushlet protocol)
- * 
- * Revision 1.16 2005/02/18 12:36:47 justb changes for renaming and
- * configurability
- * 
- * Revision 1.15 2005/02/18 10:07:23 justb many renamings of classes (make names
- * compact)
- * 
- * Revision 1.14 2005/02/18 09:54:15 justb refactor: rename Publisher Dispatcher
- * and single Subscriber class
- * 
- * Revision 1.13 2005/02/16 14:39:34 justb fixed leave handling and added "poll"
- * mode
- * 
- * Revision 1.12 2005/01/24 13:42:00 justb new protocol changes (p_listen)
- * 
- * Revision 1.11 2005/01/13 14:47:15 justb control evt: send response on same
- * (control) connection
- * 
- * Revision 1.10 2004/10/24 20:50:35 justb refine subscription with label and
- * sending sid and label on events
- * 
- * Revision 1.9 2004/10/24 12:58:18 justb revised client and test classes for
- * new protocol
- * 
- * Revision 1.8 2004/09/26 21:39:43 justb allow multiple subscriptions and
- * out-of-band requests
- * 
- * Revision 1.7 2004/09/20 22:01:38 justb more changes for new protocol
- * 
- * Revision 1.6 2004/09/03 22:35:37 justb Almost complete rewrite, just checking
- * in now
- * 
- * Revision 1.5 2004/08/13 23:36:05 justb rewrite of Pullet into Pushlet "pull"
- * mode
- * 
- * Revision 1.4 2004/03/10 14:01:55 justb formatting and *Subscriber refactoring
- * 
- * Revision 1.3 2003/08/15 08:37:40 justb fix/add Copyright+LGPL file headers
- * and footers
- * 
- * Revision 1.2 2003/05/18 16:15:08 justb support for XML encoded Events
- * 
- * Revision 1.1.1.1 2002/09/24 21:02:32 justb import to sourceforge
- * 
- * Revision 1.1.1.1 2002/09/20 22:48:18 justb import to SF
- * 
- * Revision 1.1.1.1 2002/09/20 14:19:04 justb first import into SF
- * 
- * Revision 1.3 2002/04/15 20:42:41 just reformatting and renaming GuardedQueue
- * to EventQueue
- * 
- * Revision 1.2 2000/08/21 20:48:29 just added CVS log and id tags plus
- * copyrights
- */

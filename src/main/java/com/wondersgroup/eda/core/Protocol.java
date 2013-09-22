@@ -12,42 +12,42 @@
 package com.wondersgroup.eda.core;
 
 /**
- * Constants for Pushlet protocols.
+ * EDA框架协议的参数定义
  */
 public interface Protocol {
 
 	/**
-	 * Default URI .
+	 * 默认URI
 	 */
 	public static final String DEFAULT_SERVLET_URI = "/pushlet/pushlet.srv";
 
 	/**
-	 * Event type (join, leave, data, subscribe etc) .
+	 * 事件类型 (join, leave, data, subscribe等等) 
 	 */
 	public static final String P_EVENT = "p_event";
 
 	/**
-	 * Time in seconds since 1970
+	 * 起始时间（1970）
 	 */
 	public static final String P_TIME = "p_time";
 
 	/**
-	 * Event sequence number, numbers per-client.
+	 * 事件序列数, 每个客户端的数量
 	 */
 	public static final String P_SEQ = "p_seq";
 
 	/**
-	 * Subject (topic) of data event.
+	 * 数据事件对象（TOPIC）
 	 */
 	public static final String P_SUBJECT = "p_subject";
 
 	/**
-	 * Originator of Event.
+	 * 事件起源
 	 */
 	public static final String P_FROM = "p_from";
 
 	/**
-	 * Addressee of Event, subject or client p_id.
+	 * 事件地址
 	 */
 	public static final String P_TO = "p_to";
 
@@ -92,12 +92,8 @@ public interface Protocol {
 	 */
 	public static final String P_SUBSCRIPTION_LABEL = "p_label";
 
-	//
-	// Event values with direction for P_EVENT (C=client, S=server)
-	//
-
 	/**
-	 * C-->S Request to join server.
+	 * 客户端-->服务器端的请求
 	 */
 	public static final String E_JOIN = "join";
 

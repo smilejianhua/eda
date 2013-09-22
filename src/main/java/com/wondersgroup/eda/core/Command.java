@@ -91,13 +91,8 @@ public class Command implements Protocol {
 		return clientAdapter;
 	}
 
-	/**
-	 * Create client notifier based on "format" parameter passed in request.
-	 */
 	protected ClientAdapter createClientAdapter() throws PushletException {
-
 		String outputFormat = session.getFormat();
-
 		if (outputFormat.equals(FORMAT_JAVASCRIPT)) {
 			return new BrowserAdapter(httpRsp);
 		}
@@ -121,5 +116,4 @@ public class Command implements Protocol {
 			httpRsp.setHeader("Connection", "close");
 		}
 	}
-
 }

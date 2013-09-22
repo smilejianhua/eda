@@ -55,40 +55,39 @@ public class EventParser {
 	/**
 	 * 从一个字符串中获得事件对象
 	 */
-	public static Event parse(String aString) throws IOException {
-		aString = aString.trim();
-		if (!aString.startsWith("<") || !aString.endsWith("/>")) {
-			throw new IOException("No start or end tag found while parsing event [" + aString + "]");
+	public static Event parse(String string) throws IOException {
+		string = string.trim();
+		if (!string.startsWith("<") || !string.endsWith("/>")) {
+			throw new IOException("No start or end tag found while parsing event [" + string + "]");
 		}
-		// Create the attributes object.
-		HashMap properties = new HashMap(3);
-		aString = aString.substring(1, aString.length() - 2).trim();
+		HashMap<String, String> properties = new HashMap<String,String>(3);
+		string = string.substring(1, string.length() - 2).trim();
 		int index = 0;
-		while (!Character.isWhitespace(aString.charAt(index)) && (index < aString.length())) {
+		while (!Character.isWhitespace(string.charAt(index)) && (index < string.length())) {
 			index++;
 		}
-		aString = aString.substring(index).trim();
+		string = string.substring(index).trim();
 		index = 0;
 		String attrName;
 		String attrValue;
-		while (index < aString.length()) {
-			while ((aString.charAt(index) != '=') && (index < aString.length())) {
+		while (index < string.length()) {
+			while ((string.charAt(index) != '=') && (index < string.length())) {
 				index++;
 			}
 			// 创建属性名称字符串
-			attrName = aString.substring(0, index).trim();
-			aString = aString.substring(index + 1).trim();
+			attrName = string.substring(0, index).trim();
+			string = string.substring(index + 1).trim();
 			index = 1; 
 			// 获得属性值
-			while ((aString.charAt(index) != '\"') && (index < aString.length())) {
-				if (aString.charAt(index) == '\\') {
-					aString = aString.substring(0, index) + aString.substring(index + 1);
+			while ((string.charAt(index) != '\"') && (index < string.length())) {
+				if (string.charAt(index) == '\\') {
+					string = string.substring(0, index) + string.substring(index + 1);
 				}
 				index++;
 			}
-			attrValue = aString.substring(1, index);
+			attrValue = string.substring(1, index);
 			properties.put(attrName, attrValue);
-			aString = aString.substring(index + 1).trim();
+			string = string.substring(index + 1).trim();
 			index = 0;
 		}
 		return new Event(properties);
